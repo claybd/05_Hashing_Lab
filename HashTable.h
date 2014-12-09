@@ -46,6 +46,7 @@ class HashTable : public USet <Key, T> {
   HashTable();
   //Delete any dynamically allocated memory.
   virtual ~HashTable();
+    
 
 private:
   //A pointer to the array that holds the hash table data
@@ -75,6 +76,120 @@ private:
  public:
   unsigned long numRemoved; //Number of slots that have been removed but not re-used. Those that have isDel == true
   unsigned long backingArraySize;
+    
+    unsigned long hash(Key k)
+    {
+        unsigned long hashNum = 0;
+        for (int i = 0; i < k.length(); i++)
+            hashNum = hashNum + 10*((unsigned long)k[i])%13;
+        
+        return hashNum;
+    }
+    
 };
 
-#include "HashTable.ipp"
+//You will need this so you can make a string to throw in
+// remove
+#include <string>
+
+
+template <class Key, class T>
+HashTable<Key,T>::HashTable(){
+    backingArraySize = 10;
+    numItems = 0;
+    numRemoved = 0;
+    backingArray = new HashRecord[backingArraySize];
+    
+    for (int i = 0; i < 10; i++)
+    {
+        HashRecord hash = *new HashRecord();
+        hash.isNull = true;
+        hash.isDel = false;
+        backingArray[i] = hash;
+    }
+}
+
+template <class Key, class T>
+HashTable<Key,T>::~HashTable() {
+    delete[] backingArray;
+    numItems = 0;
+    numRemoved = 0;
+    backingArraySize = 0;
+    
+}
+
+template <class Key, class T>
+unsigned long HashTable<Key,T>::calcIndex(Key k){
+    //TODO
+    return numItems; //This indicates failure, since it is an impossible value
+}
+
+template <class Key, class T>
+void HashTable<Key,T>::add(Key k, T x){
+    if (numItems+1 >= backingArraySize)
+        grow();
+    
+    unsigned long i = hash(k);
+    HashRecord *newHash = new HashRecord();
+    newHash->k = k;
+    newHash->x = x;
+    
+    if (backingArray[i].isNull)
+        backingArray[i] = *newHash;
+    else
+    {
+        while (backingArray[i].isNull == false)
+            i = (i == backingArraySize - 1) ? 0 : i+1;
+    }
+    
+    if (backingArray[i].isDel == true)
+        numRemoved--;
+    
+//    backingArray[i].k = k;
+    backingArray[i].x = x;
+    backingArray[i].isNull = false;
+    backingArray[i].isDel = false;
+    
+    numItems++;
+}
+
+template <class Key, class T>
+void HashTable<Key,T>::remove(Key k){
+    //TODO
+}
+
+template <class Key, class T>
+T HashTable<Key,T>::find(Key k){
+    unsigned long i = hash(k);
+    
+    while(!backingArray[i].isNull)
+    {
+        if (!backingArray[i].isDel && backingArray[i].k == k)
+            return backingArray[i].x;
+    }
+    
+    return -1;
+}
+
+template <class Key, class T>
+bool HashTable<Key,T>::keyExists(Key k){
+    //TODO
+    return false;
+}
+
+template <class Key, class T>
+unsigned long HashTable<Key,T>::size(){
+    return numItems;
+}
+
+template <class Key, class T>
+void HashTable<Key,T>::grow(){
+    backingArraySize = backingArraySize*2;
+    HashRecord *newHash = new HashRecord[backingArraySize];
+    
+    for (int i = 0; i < backingArraySize/2; i++)
+        newHash[i] = backingArray[i];
+    
+    backingArray = newHash;
+    
+}
