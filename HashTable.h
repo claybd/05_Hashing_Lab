@@ -1,6 +1,5 @@
-//DO NOT CHANGE THIS FILE
-//Author: Bo Brinkman
-//Date: 2013/07/24
+/* This program was written by Ben Clay.  It may be used without the author's consent for non-profit puproses only. */
+
 #include "USet.h"
 
 /*
@@ -16,6 +15,9 @@
  */
 
 template <class Key, class T>
+
+
+
 class HashTable : public USet <Key, T> {
  private:
   class HashRecord {
@@ -31,7 +33,7 @@ class HashTable : public USet <Key, T> {
     // that have never been used
     bool isDel;
 
-    HashRecord() { isNull = true; isDel = false; };
+      HashRecord() { isNull = true; isDel = false; };
   };
 
  public:
@@ -47,6 +49,7 @@ class HashTable : public USet <Key, T> {
   //Delete any dynamically allocated memory.
   virtual ~HashTable();
     
+  unsigned long hash (char c) { return 10*((unsigned long)c - '0')%13; }
 
 private:
   //A pointer to the array that holds the hash table data
@@ -62,134 +65,171 @@ private:
   // after initializing the new array.
   void grow();
 
-  //This helper method should take a key, and return the index for that
+  // This helper method should take a key, and return the index for that
   // item within the hash table. If the item already exists, return the
   // index of the existing item. If the item doesn't exist, return the index
   // where it OUGHT to be. This function can then be used as a helper method in
   // your other methods.
   unsigned long calcIndex(Key k);
 
-  unsigned long numItems; //Number of items in the hash table
+  unsigned long numItems; // Number of items in the hash table
 
-  //Note: Ordinarily, these OUGHT to be private. In this case I have
-  // made them public for easy of testing.
+  // Note: Ordinarily, these OUGHT to be private. In this case I have
+  // made them public for ease of testing.
  public:
   unsigned long numRemoved; //Number of slots that have been removed but not re-used. Those that have isDel == true
   unsigned long backingArraySize;
     
-    unsigned long hash(Key k)
-    {
-        unsigned long hashNum = 0;
-        for (int i = 0; i < k.length(); i++)
-            hashNum = hashNum + 10*((unsigned long)k[i])%13;
-        
-        return hashNum;
-    }
-    
 };
+
 
 //You will need this so you can make a string to throw in
 // remove
 #include <string>
+#include <cmath>
 
+//***********************
 
 template <class Key, class T>
 HashTable<Key,T>::HashTable(){
-    backingArraySize = 10;
     numItems = 0;
     numRemoved = 0;
+    backingArraySize = 20;
     backingArray = new HashRecord[backingArraySize];
     
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < backingArraySize; i++)
     {
-        HashRecord hash = *new HashRecord();
-        hash.isNull = true;
-        hash.isDel = false;
-        backingArray[i] = hash;
+        backingArray[i].isNull = true;
+        backingArray[i].isDel = false;
     }
 }
+
+//***********************
 
 template <class Key, class T>
 HashTable<Key,T>::~HashTable() {
     delete[] backingArray;
-    numItems = 0;
-    numRemoved = 0;
-    backingArraySize = 0;
-    
+    backingArray = 0;
 }
+
+//***********************
 
 template <class Key, class T>
 unsigned long HashTable<Key,T>::calcIndex(Key k){
-    //TODO
-    return numItems; //This indicates failure, since it is an impossible value
+    unsigned long hashNum = 0;
+    
+    for (int i = 0; i < k.length(); i++)
+    {
+        hashNum = hashNum + hash((char)k.at(i));
+        hashNum = hashNum - (i*(2/3));
+        
+        if (hashNum >= backingArraySize)
+        {
+            hashNum = hashNum - hash((char)k.at(i))*2;
+        }
+    }
+    
+    if (hashNum >= backingArraySize)
+        grow();
+    
+    while (backingArray[hashNum].k != k && backingArray[hashNum].isNull == false)
+        hashNum = (hashNum == backingArraySize - 1) ? 0 : hashNum + 1; // Increment hashNum
+    
+    return hashNum;
 }
+
+//***********************
 
 template <class Key, class T>
 void HashTable<Key,T>::add(Key k, T x){
-    if (numItems+1 >= backingArraySize)
+    unsigned long hashNum = calcIndex(k);
+    
+    if (hashNum*2 >= backingArraySize)
         grow();
-    
-    unsigned long i = hash(k);
-    HashRecord *newHash = new HashRecord();
-    newHash->k = k;
-    newHash->x = x;
-    
-    if (backingArray[i].isNull)
-        backingArray[i] = *newHash;
-    else
-    {
-        while (backingArray[i].isNull == false)
-            i = (i == backingArraySize - 1) ? 0 : i+1;
-    }
-    
-    if (backingArray[i].isDel == true)
+        
+    if (backingArray[hashNum].isDel)
         numRemoved--;
     
-//    backingArray[i].k = k;
-    backingArray[i].x = x;
-    backingArray[i].isNull = false;
-    backingArray[i].isDel = false;
+    HashRecord *record = new HashRecord();
     
+    record->x = x;
+    record->k = k;
+    record->isDel = false;
+    record->isNull = false;
     numItems++;
+    
+    backingArray[hashNum] = *record;
 }
+
+//***********************
 
 template <class Key, class T>
 void HashTable<Key,T>::remove(Key k){
-    //TODO
+    unsigned long i = calcIndex(k);
+    
+    if (backingArray[i].isNull == false) {
+        backingArray[i].x = 0;
+        backingArray[i].k = "";
+        numRemoved++;
+        numItems--;
+        backingArray[i].isDel = true;
+    }
+    
+    backingArray[i].isNull = true;
 }
+
+//***********************
 
 template <class Key, class T>
 T HashTable<Key,T>::find(Key k){
-    unsigned long i = hash(k);
+    T dummy;
     
-    while(!backingArray[i].isNull)
+    if (!keyExists(k))
+        throw std::string ("Invalid Key!");
+    else
     {
-        if (!backingArray[i].isDel && backingArray[i].k == k)
-            return backingArray[i].x;
+        unsigned long hashNum = calcIndex(k);
+        dummy = backingArray[hashNum].x;
     }
     
-    return -1;
+    return dummy;
 }
+
+//***********************
 
 template <class Key, class T>
 bool HashTable<Key,T>::keyExists(Key k){
-    //TODO
-    return false;
+    unsigned long hashNum = calcIndex(k);
+    
+    if (backingArray[hashNum].k == k)
+        return true;
+    else
+        return false;
 }
+
+//***********************
 
 template <class Key, class T>
 unsigned long HashTable<Key,T>::size(){
     return numItems;
 }
 
+//***********************
+
 template <class Key, class T>
 void HashTable<Key,T>::grow(){
-    backingArraySize = backingArraySize*2;
-    HashRecord *newHash = new HashRecord[backingArraySize];
+    unsigned long power = (int) pow(2, backingArraySize);
+    HashRecord *tempArray = new HashRecord[power];
     
-    for (int i = 0; i < backingArraySize/2; i++)
-        newHash[i] = backingArray[i];
+    for (int i = 0; i < power; i++)
+    {
+        tempArray[i].isNull = true;
+        tempArray[i].isDel = false;
+    }
     
-    backingArray = newHash;
+    for (int i = 0; i < backingArraySize; i++)
+        tempArray[i] = backingArray[i];
     
+    backingArray = tempArray;
+    backingArraySize = power;
 }
