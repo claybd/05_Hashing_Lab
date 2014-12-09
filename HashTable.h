@@ -94,7 +94,7 @@ template <class Key, class T>
 HashTable<Key,T>::HashTable(){
     numItems = 0;
     numRemoved = 0;
-    backingArraySize = 20;
+    backingArraySize = hashPrimes[1];
     backingArray = new HashRecord[backingArraySize];
     
     for (int i = 0; i < backingArraySize; i++)
@@ -144,7 +144,7 @@ template <class Key, class T>
 void HashTable<Key,T>::add(Key k, T x){
     unsigned long hashNum = calcIndex(k);
     
-    if (hashNum*2 >= backingArraySize)
+    if (hashNum >= backingArraySize || (numItems*2) + hashNum >= backingArraySize)
         grow();
         
     if (backingArray[hashNum].isDel)
@@ -218,10 +218,17 @@ unsigned long HashTable<Key,T>::size(){
 
 template <class Key, class T>
 void HashTable<Key,T>::grow(){
-    unsigned long power = (int) pow(2, backingArraySize);
-    HashRecord *tempArray = new HashRecord[power];
+    int cnt = 2;
+    unsigned long prime = hashPrimes[cnt];
     
-    for (int i = 0; i < power; i++)
+    while (prime < backingArraySize)
+    {
+        cnt++;
+        prime = hashPrimes[cnt];
+    }
+    HashRecord *tempArray = new HashRecord[prime];
+    
+    for (int i = 0; i < prime; i++)
     {
         tempArray[i].isNull = true;
         tempArray[i].isDel = false;
@@ -231,5 +238,5 @@ void HashTable<Key,T>::grow(){
         tempArray[i] = backingArray[i];
     
     backingArray = tempArray;
-    backingArraySize = power;
+    backingArraySize = prime;
 }
