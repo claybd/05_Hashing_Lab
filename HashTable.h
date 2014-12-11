@@ -234,8 +234,26 @@ void HashTable<Key,T>::grow(){
         tempArray[i].isDel = false;
     }
     
+    unsigned long hashNum;
     for (int i = 0; i < backingArraySize; i++)
-        tempArray[i] = backingArray[i];
+    {
+        hashNum = 0;
+        for (int j = 0; j < backingArray[i].k.length(); j++)
+        {
+            hashNum = hashNum + hash((char)backingArray[i].k.at(j));
+            hashNum = hashNum - (i*(2/3));
+            
+            if (hashNum >= prime)
+            {
+                hashNum = hashNum - hash((char)backingArray[i].k.at(j))*2;
+            }
+        }
+        
+        while (tempArray[hashNum].isNull == false && tempArray[hashNum].k != backingArray[i].k)
+            hashNum = (hashNum == backingArraySize - 1) ? 0 : hashNum + 1; // Increment hashNum
+        
+        tempArray[hashNum] = backingArray[i];
+    }
     
     delete[] backingArray;
     backingArray = tempArray;
