@@ -109,7 +109,7 @@ HashTable<Key,T>::HashTable(){
 template <class Key, class T>
 HashTable<Key,T>::~HashTable() {
     delete[] backingArray;
-    backingArray = 0;
+    backingArray = nullptr;
 }
 
 //***********************
@@ -237,6 +237,7 @@ void HashTable<Key,T>::grow(){
     for (int i = 0; i < backingArraySize; i++)
         tempArray[i] = backingArray[i];
     
+    delete[] backingArray;
     backingArray = tempArray;
     backingArraySize = prime;
 }
